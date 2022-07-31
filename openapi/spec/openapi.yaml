@@ -1,0 +1,63 @@
+openapi: "3.0.0"
+
+info:
+  title: Apart-Deal API Contracts
+  description: Apart-Deal API Contracts
+  version: 0.0.1
+
+paths: {}
+
+components:
+  schemas:
+
+    SignUp:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 2
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 5
+
+    SignIn:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 5
+
+    AuthToken:
+      type: object
+      required: [token, refresh_token]
+      properties:
+        token:
+          type: string
+        refresh_token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    ConfirmSignUp:
+      type: object
+      required: [code, token]
+      properties:
+        code:
+          type: string
+        token:
+          type: string
+
+    RefreshAuthToken:
+      type: object
+      properties:
+        refresh_token:
+          type: string
