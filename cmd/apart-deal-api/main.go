@@ -5,20 +5,22 @@ import (
 	"os"
 
 	"apart-deal-api/cmd/apart-deal-api/app"
-
-	"go.uber.org/zap"
+	"apart-deal-api/pkg/logging"
 )
 
 func main() {
-	logger, err := zap.NewProduction()
+	logger, err := logging.NewLogger()
 	if err != nil {
-		fmt.Println("Failed while creating logger: ", err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	if err = app.Run(&app.Config{
-		Port: 8080,
-	}, logger); err != nil {
+	cfg, err := app.NewConfig()
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
+
+	if err = app.Run(cfg, logger); err != nil {
 		logger.Fatal(err.Error())
 	}
 

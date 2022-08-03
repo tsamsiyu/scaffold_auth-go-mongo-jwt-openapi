@@ -7,7 +7,7 @@ import (
 
 	"apart-deal-api/pkg/utils"
 
-	"github.com/go-redis/redis/v9"
+	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +25,7 @@ func NewTokenFromUserUID(uid string) Token {
 	}
 }
 
-type TokenStorage interface {
+type TokenStore interface {
 	FindByHash(ctx context.Context, hash string) (Token, error)
 	Create(ctx context.Context, token *Token, expiration time.Duration) error
 	DeleteByHash(ctx context.Context, hash string) error

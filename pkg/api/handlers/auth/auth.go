@@ -3,14 +3,50 @@ package auth
 import (
 	"github.com/labstack/echo/v4"
 
-	aos "gitlab.com/apart-deals/openapi/go/api"
+	authDomain "apart-deal-api/pkg/domain/auth"
+	oas "gitlab.com/apart-deals/openapi/go/api"
 )
 
 type AuthHandler struct {
+	signUpSvc        *authDomain.SignUpService
+	confirmSignUpSvc *authDomain.ConfirmSignUpService
 }
 
 func (h *AuthHandler) SignUp(eCtx echo.Context) error {
-	_ = aos.SignUp{}
+	payload := oas.SignUp{}
+
+	if err := eCtx.Bind(&payload); err != nil {
+		return err
+	}
+
+	ctx := eCtx.Request().Context()
+
+	if err := h.signUpSvc.SignUp(ctx, authDomain.SignUpInput{
+		Email:    payload.Email,
+		Name:     payload.Name,
+		Password: payload.Password,
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *AuthHandler) ConfirmSignUp(eCtx echo.Context) error {
+	payload := oas.ConfirmSignUp{}
+
+	if err := eCtx.Bind(&payload); err != nil {
+		return err
+	}
+
+	ctx := eCtx.Request().Context()
+
+	if err := h.confirmSignUpSvc.Confirm(ctx, authDomain.ConfirmSignUpInput{
+		Token: payload.Token,
+		Code:  payload.Code,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }

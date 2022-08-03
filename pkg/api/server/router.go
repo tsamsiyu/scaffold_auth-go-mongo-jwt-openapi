@@ -13,6 +13,7 @@ func CreateRouter(
 	r := echo.NewRouter(e)
 
 	r.Add("GET", "/auth/sign-up", authHandler.SignUp)
+	r.Add("GET", "/auth/confirm-sign-up", authHandler.ConfirmSignUp)
 	r.Add("GET", "/auth/sign-in", authHandler.SignIn)
 	r.Add("GET", "/auth/sign-out", authHandler.SignOut)
 
