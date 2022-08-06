@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"apart-deal-api/pkg/mongo/db"
 	"apart-deal-api/pkg/security"
 	"apart-deal-api/pkg/store/user"
 	"apart-deal-api/pkg/utils"
@@ -22,6 +23,12 @@ type SignUpInput struct {
 
 type SignUpService struct {
 	userRepo user.UserRepository
+}
+
+func NewSignUpService(userRepo user.UserRepository) *SignUpService {
+	return &SignUpService{
+		userRepo: userRepo,
+	}
 }
 
 func (s *SignUpService) SignUp(ctx context.Context, input SignUpInput) error {
@@ -43,7 +50,7 @@ func (s *SignUpService) SignUp(ctx context.Context, input SignUpInput) error {
 	code := utils.RandomIntBetween(10000, 99999)
 
 	model := user.User{
-		UID:          db.NewUID(),
+		UID:          db.NewUUID().String(),
 		Email:        input.Email,
 		Name:         input.Name,
 		PasswordHash: passwordHash,

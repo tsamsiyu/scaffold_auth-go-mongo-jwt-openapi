@@ -26,9 +26,13 @@ func NewTokenFromUserUID(uid string) Token {
 }
 
 type TokenStore interface {
-	FindByHash(ctx context.Context, hash string) (Token, error)
+	FindByHash(ctx context.Context, hash string) (*Token, error)
 	Create(ctx context.Context, token *Token, expiration time.Duration) error
 	DeleteByHash(ctx context.Context, hash string) error
+}
+
+func NewTokenStore(client *redis.Client) TokenStore {
+	return &redisTokenStorage{client: client}
 }
 
 type redisTokenStorage struct {

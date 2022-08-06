@@ -19,6 +19,12 @@ type ConfirmSignUpService struct {
 	userRepo user.UserRepository
 }
 
+func NewConfirmSignUpService(userRepo user.UserRepository) *ConfirmSignUpService {
+	return &ConfirmSignUpService{
+		userRepo: userRepo,
+	}
+}
+
 func (s *ConfirmSignUpService) Confirm(ctx context.Context, input ConfirmSignUpInput) error {
 	userModel, err := s.userRepo.FindBySignUpReqToken(ctx, input.Token)
 	if err != nil {

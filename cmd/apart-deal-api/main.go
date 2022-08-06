@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	logger, err := logging.NewLogger()
+	logger, err := logging.FromEnv()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

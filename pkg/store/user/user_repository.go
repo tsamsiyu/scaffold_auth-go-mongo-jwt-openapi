@@ -52,7 +52,7 @@ type mongoUserRepository struct {
 	db *mongo.Database
 }
 
-func NewUserRepository(db *mongo.Database) *mongoUserRepository {
+func NewUserRepository(db *mongo.Database) UserRepository {
 	return &mongoUserRepository{
 		db: db,
 	}

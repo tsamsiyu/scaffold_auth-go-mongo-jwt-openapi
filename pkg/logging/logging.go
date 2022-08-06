@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func NewLogger() (*zap.Logger, error) {
+func FromEnv() (*zap.Logger, error) {
 	zapLevel, err := getZapLevel()
 	if err != nil {
 		return nil, err

@@ -12,6 +12,13 @@ type AuthHandler struct {
 	confirmSignUpSvc *authDomain.ConfirmSignUpService
 }
 
+func NewAuthHandler(signUpSvc *authDomain.SignUpService, confirmSignUpSvc *authDomain.ConfirmSignUpService) *AuthHandler {
+	return &AuthHandler{
+		signUpSvc:        signUpSvc,
+		confirmSignUpSvc: confirmSignUpSvc,
+	}
+}
+
 func (h *AuthHandler) SignUp(eCtx echo.Context) error {
 	payload := oas.SignUp{}
 
