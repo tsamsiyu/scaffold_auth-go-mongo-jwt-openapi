@@ -6,6 +6,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+
+	appMongo "apart-deal-api/pkg/mongo"
 )
 
 type UserStatus string
@@ -52,7 +54,7 @@ type mongoUserRepository struct {
 	db *mongo.Database
 }
 
-func NewUserRepository(db *mongo.Database) UserRepository {
+func NewUserRepository(db appMongo.MainDB) UserRepository {
 	return &mongoUserRepository{
 		db: db,
 	}

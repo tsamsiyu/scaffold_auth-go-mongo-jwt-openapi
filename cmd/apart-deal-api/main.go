@@ -15,12 +15,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg, err := app.NewConfig()
+	envs, err := app.NewEnvs()
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 
-	if err = app.Run(cfg, logger); err != nil {
+	if err = app.Run(envs, logger); err != nil {
 		logger.Fatal(err.Error())
 	}
 

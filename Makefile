@@ -12,10 +12,5 @@ generate-openapi:
       --global-property models
 
 run-locally:
-	API_PORT=8008 \
-	LOG_LEVEL=info \
-	MONGO_URI=mongodb://localhost:21019/?replicaSet=myrs \
-	MONGO_DOMAIN_DB=apart_deal_api \
-	REDIS_URI=http://localhost:6379 \
-	REDIS_DB=2 \
+	export $(cat .env.local | xargs)
 	go run cmd/apart-deal-api/main.go
