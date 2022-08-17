@@ -1,4 +1,4 @@
-package logging
+package dependencies
 
 import (
 	"os"
@@ -8,11 +8,12 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func FromEnv() (*zap.Logger, error) {
-	zapLevel, err := getZapLevel()
-	if err != nil {
-		return nil, err
-	}
+var (
+	defaultLoggingLevel = zap.NewAtomicLevelAt(zap.InfoLevel)
+)
+
+func LoggerFromEnv() *zap.Logger {
+	zapLevel := getZapLevelFromEnv()
 
 	loggerCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
@@ -22,19 +23,19 @@ func FromEnv() (*zap.Logger, error) {
 		}),
 	)
 
-	return zap.New(loggerCore), nil
+	return zap.New(loggerCore)
 }
 
-func getZapLevel() (*zap.AtomicLevel, error) {
+func getZapLevelFromEnv() *zap.AtomicLevel {
 	rawLevel := os.Getenv("LOG_LEVEL")
 	if rawLevel != "" {
 		zapLevel, err := zap.ParseAtomicLevel(rawLevel)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed while parsing zap log level: %s", rawLevel)
+			panic(errors.Wrapf(err, "Failed while parsing zap log level: %s", rawLevel))
 		}
 
-		return &zapLevel, nil
+		return &zapLevel
 	}
 
-	return nil, nil
+	return &defaultLoggingLevel
 }
