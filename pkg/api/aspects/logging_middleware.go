@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"go.uber.org/zap/zapcore"
 	"io"
 	"io/ioutil"
 	"net"
@@ -60,19 +59,11 @@ func NewLoggingMiddleware(logger *zap.Logger, config *LoggingMiddlewareConfig) e
 			logEntry := logger
 
 			if config.IncludeRequestBodies {
-				logEntry = logEntry.With(zap.Field{
-					Key:    "requestBody",
-					Type:   zapcore.StringType,
-					String: string(reqBody),
-				})
+				logEntry = logEntry.With(zap.String("requestBody", string(reqBody)))
 			}
 
 			if config.IncludeResponseBodies {
-				logEntry = logEntry.With(zap.Field{
-					Key:    "responseBody",
-					Type:   zapcore.StringType,
-					String: respBody.String(),
-				})
+				logEntry = logEntry.With(zap.String("responseBody", respBody.String()))
 			}
 
 			logEntry.Info(fmt.Sprintf("Request %s %s finished in %dms", req.Method, req.URL, time.Since(start).Milliseconds()))

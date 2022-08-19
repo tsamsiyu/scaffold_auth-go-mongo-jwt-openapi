@@ -27,13 +27,18 @@ func NewServer(logger *zap.Logger, cfg *config.Config) *echo.Echo {
 
 func RegisterRoutes(
 	e *echo.Echo,
-	authHandler *auth.AuthHandler,
+	signUpHandler *auth.SignUpHandler,
+	signUpConfirmHandler *auth.SignUpConfirmHandler,
 ) {
+
 	e.GET("ready", func(c echo.Context) error {
 		return c.String(200, "OK")
 	})
 
-	e.POST("/auth/sign-up", authHandler.SignUp)
+	group := e.Group("/api/v1")
+
+	group.POST("/auth/sign-up", signUpHandler.Handle)
+	group.POST("/auth/sign-up-confirm", signUpConfirmHandler.Handle)
 
 	//r.Add("POST", "auth/sign-up", authHandler.SignUp)
 	//r.Add("POST", "auth/confirm-sign-up", authHandler.ConfirmSignUp)

@@ -6,9 +6,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-
-	appMongo "apart-deal-api/pkg/mongo"
 )
+
+type UserDuplicateError struct {
+	error
+}
 
 type UserStatus string
 
@@ -17,19 +19,18 @@ const (
 )
 
 var (
-	Pending UserStatus = "pending"
-	Active  UserStatus = "active"
+	StatusPending   UserStatus = "pending"
+	StatusConfirmed UserStatus = "confirmed"
 )
 
 type SignUpRequest struct {
 	Token      string     `bson:"token"`
 	Code       string     `bson:"code"`
-	CreatedAt  time.Time  `bson:"createdAt"`
 	NotifiedAt *time.Time `bson:"notifiedAt"`
 }
 
 type User struct {
-	UID          string         `bson:"uid"`
+	UID          string         `bson:"_id"`
 	Name         string         `bson:"name"`
 	Email        string         `bson:"email"`
 	Status       UserStatus     `bson:"status"`
@@ -45,7 +46,7 @@ type UserRepository interface {
 	SaveNotifiedSignUpReqTime(ctx context.Context, uid string, t time.Time) error
 	FindBySignUpReqToken(ctx context.Context, token string) (*User, error)
 	Create(ctx context.Context, model *User) error
-	ConfirmAndDeleteSignUpReq(ctx context.Context, uid string) error
+	ConfirmAndDeleteSignUpReq(ctx context.Context, uid string) (bool, error)
 	FindByUID(ctx context.Context, uid string) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 }
@@ -54,15 +55,15 @@ type mongoUserRepository struct {
 	db *mongo.Database
 }
 
-func NewUserRepository(db appMongo.MainDB) UserRepository {
+func NewUserRepository(db *mongo.Database) UserRepository {
 	return &mongoUserRepository{
 		db: db,
 	}
 }
 
 func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Context) ([]User, error) {
-	cursor, err := r.db.Collection(collectionName).Find(ctx, bson.M{
-		"signUpReq.notifiedAt": nil,
+	cursor, err := r.db.Collection(collectionName).Find(ctx, bson.D{
+		{"signUpReq.notifiedAt", nil},
 	})
 	if err != nil {
 		return nil, err
@@ -70,7 +71,7 @@ func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Conte
 
 	defer cursor.Close(ctx)
 
-	var models []User
+	models := make([]User, 0)
 
 	for cursor.Next(ctx) {
 		var model User
@@ -79,6 +80,8 @@ func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Conte
 		if err != nil {
 			return nil, err
 		}
+
+		models = append(models, model)
 	}
 	if err := cursor.Err(); err != nil {
 		return nil, err
@@ -89,9 +92,9 @@ func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Conte
 
 func (r *mongoUserRepository) SaveNotifiedSignUpReqTime(ctx context.Context, uid string, t time.Time) error {
 	_, err := r.db.Collection(collectionName).UpdateOne(ctx, bson.M{
-		"uid": uid,
+		"_id": uid,
 	}, bson.M{
-		"$set": bson.M{"signUpReq.notifiedAt": t.Format(time.RFC3339)},
+		"$set": bson.M{"signUpReq.notifiedAt": t},
 	})
 	if err != nil {
 		return err
@@ -101,8 +104,8 @@ func (r *mongoUserRepository) SaveNotifiedSignUpReqTime(ctx context.Context, uid
 }
 
 func (r *mongoUserRepository) FindBySignUpReqToken(ctx context.Context, token string) (*User, error) {
-	singleResult := r.db.Collection(collectionName).FindOne(ctx, bson.M{
-		"signUpReq.token": token,
+	singleResult := r.db.Collection(collectionName).FindOne(ctx, bson.D{
+		{"signUpReq.token", token},
 	})
 	if err := singleResult.Err(); err != nil {
 		return nil, err
@@ -114,25 +117,30 @@ func (r *mongoUserRepository) FindBySignUpReqToken(ctx context.Context, token st
 		return nil, err
 	}
 
-	return nil, nil
+	return &u, nil
 }
 
-func (r *mongoUserRepository) ConfirmAndDeleteSignUpReq(ctx context.Context, uid string) error {
-	_, err := r.db.Collection(collectionName).UpdateOne(ctx, bson.M{
-		"uid": uid,
+func (r *mongoUserRepository) ConfirmAndDeleteSignUpReq(ctx context.Context, uid string) (bool, error) {
+	res, err := r.db.Collection(collectionName).UpdateOne(ctx, bson.M{
+		"_id":    uid,
+		"status": StatusPending,
 	}, bson.M{
-		"$set": bson.M{"signUpReq": nil, "status": Active},
+		"$set": bson.M{
+			"signUpReq":   nil,
+			"confirmedAt": time.Now(),
+			"status":      StatusConfirmed,
+		},
 	})
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return res.ModifiedCount > 0, nil
 }
 
 func (r *mongoUserRepository) FindByUID(ctx context.Context, uid string) (*User, error) {
 	singleResult := r.db.Collection(collectionName).FindOne(ctx, bson.M{
-		"uid": uid,
+		"_id": uid,
 	})
 	if err := singleResult.Err(); err != nil {
 		return nil, err
@@ -152,6 +160,10 @@ func (r *mongoUserRepository) FindByEmail(ctx context.Context, email string) (*U
 		"email": email,
 	})
 	if err := singleResult.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -172,8 +184,16 @@ func (r *mongoUserRepository) Create(ctx context.Context, model *User) error {
 
 	_, err = r.db.Collection(collectionName).InsertOne(ctx, doc)
 	if err != nil {
-		return err
+		return mapError(err)
 	}
 
 	return nil
+}
+
+func mapError(err error) error {
+	if mongo.IsDuplicateKeyError(err) {
+		return &UserDuplicateError{}
+	}
+
+	return err
 }

@@ -31,12 +31,21 @@ func (s *ConfirmSignUpService) Confirm(ctx context.Context, input ConfirmSignUpI
 		return err
 	}
 
+	if userModel == nil {
+		return &UserNotFound{}
+	}
+
 	if userModel.SignUpReq.Code != input.Code {
 		return &ConfirmationCodeMismatchError{}
 	}
 
-	if err := s.userRepo.ConfirmAndDeleteSignUpReq(ctx, userModel.UID); err != nil {
+	confirmed, err := s.userRepo.ConfirmAndDeleteSignUpReq(ctx, userModel.UID)
+	if err != nil {
 		return err
+	}
+
+	if !confirmed {
+		return &CouldNotConfirmError{}
 	}
 
 	return nil

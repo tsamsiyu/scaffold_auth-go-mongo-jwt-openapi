@@ -1,14 +1,33 @@
 package main
 
 import (
-	"apart-deal-api/cmd/apart-deal-api/app"
 	"apart-deal-api/dependencies"
+
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
+	"go.uber.org/zap"
 )
 
 func main() {
 	logger := dependencies.LoggerFromEnv()
 
-	if err := app.Run(logger); err != nil {
+	app := fx.New(
+		fx.Supply(logger),
+		fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
+			return &fxevent.ZapLogger{Logger: logger}
+		}),
+		dependencies.ConfigModule,
+		dependencies.RedisModule,
+		dependencies.DbModule,
+		dependencies.SmtpModule,
+		dependencies.RepositoryModule,
+		dependencies.AuthServicesModule,
+		dependencies.ApiModule,
+	)
+
+	app.Run()
+
+	if err := app.Err(); err != nil {
 		logger.Fatal(err.Error())
 	}
 

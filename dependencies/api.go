@@ -80,10 +80,11 @@ var ApiModule = fx.Module(
 		NewApiConfig,
 		NewApiRunFn,
 		server.NewServer,
-		authHandlers.NewAuthHandler,
-		server.RegisterRoutes,
+		authHandlers.NewSignUpHandler,
+		authHandlers.NewSignUpConfirmHandler,
 		auth.NewTokenStore,
 	),
+	fx.Invoke(server.RegisterRoutes),
 	fx.Invoke(func(lc fx.Lifecycle, fn ApiRunFn, e *echo.Echo) {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {

@@ -1,4 +1,4 @@
-package app
+package main
 
 import (
 	"apart-deal-api/dependencies"
@@ -8,19 +8,22 @@ import (
 	"go.uber.org/zap"
 )
 
-func Run(logger *zap.Logger) error {
+func main() {
+	logger := dependencies.LoggerFromEnv()
+
 	app := fx.New(
 		fx.Supply(logger),
 		fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: logger}
 		}),
 		dependencies.ConfigModule,
-		dependencies.RedisModule,
 		dependencies.DbModule,
 		dependencies.SmtpModule,
 		dependencies.RepositoryModule,
-		dependencies.AuthServicesModule,
+		dependencies.WorkerModule,
 	)
+
+	logger.Info("App is starting")
 
 	app.Run()
 
@@ -28,5 +31,5 @@ func Run(logger *zap.Logger) error {
 		logger.Fatal(err.Error())
 	}
 
-	return nil
+	logger.Info("Worker stopped")
 }

@@ -1,6 +1,7 @@
 package dependencies
 
 import (
+	"apart-deal-api/pkg/mongo/schema"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -106,8 +107,15 @@ var DbModule = fx.Module("Mongo",
 		NewMongoClient,
 		NewMongoDb,
 	),
-	fx.Invoke(func(lc fx.Lifecycle, client *mongo.Client) {
+	fx.Invoke(func(lc fx.Lifecycle, client *mongo.Client, db *mongo.Database) {
 		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				if err := schema.Migrate(ctx, db); err != nil {
+					return err
+				}
+
+				return nil
+			},
 			OnStop: func(ctx context.Context) error {
 				_ = client.Disconnect(ctx)
 

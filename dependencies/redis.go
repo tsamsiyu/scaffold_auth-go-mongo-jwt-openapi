@@ -54,7 +54,7 @@ var RedisModule = fx.Module(
 	fx.Invoke(func(lc fx.Lifecycle, client *redis.Client) {
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
-				_ = client.Shutdown(ctx)
+				_ = client.Close()
 
 				return nil
 			},

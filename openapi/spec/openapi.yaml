@@ -24,6 +24,13 @@ components:
           type: string
           minLength: 5
 
+    SignUpResponse:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
     SignIn:
       type: object
       required: [email, password]
