@@ -1,13 +1,14 @@
 package dependencies
 
 import (
-	"apart-deal-api/pkg/mongo/schema"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"os"
 	"time"
+
+	"apart-deal-api/pkg/mongo/schema"
 
 	"github.com/Netflix/go-env"
 	"go.mongodb.org/mongo-driver/mongo"

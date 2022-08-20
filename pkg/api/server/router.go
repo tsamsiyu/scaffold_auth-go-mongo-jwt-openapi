@@ -4,6 +4,7 @@ import (
 	"apart-deal-api/pkg/api/aspects"
 	"apart-deal-api/pkg/api/handlers/auth"
 	"apart-deal-api/pkg/config"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
@@ -18,30 +19,24 @@ func NewServer(logger *zap.Logger, cfg *config.Config) *echo.Echo {
 		IncludeResponseBodies: cfg.IsDebug,
 	}))
 	e.Use(aspects.NewTracingMiddleware())
-	//e.Use(middleware.TimeoutWithConfig(middleware.TimeoutConfig{
-	//	Timeout: time.Second * 5,
-	//}))
 
 	return e
 }
 
+func NewAuthRouteGroup(e *echo.Echo) auth.RouteGroup {
+	return e.Group("/api/v1/auth")
+}
+
 func RegisterRoutes(
 	e *echo.Echo,
+	authGroup auth.RouteGroup,
 	signUpHandler *auth.SignUpHandler,
 	signUpConfirmHandler *auth.SignUpConfirmHandler,
 ) {
-
 	e.GET("ready", func(c echo.Context) error {
 		return c.String(200, "OK")
 	})
 
-	group := e.Group("/api/v1")
-
-	group.POST("/auth/sign-up", signUpHandler.Handle)
-	group.POST("/auth/sign-up-confirm", signUpConfirmHandler.Handle)
-
-	//r.Add("POST", "auth/sign-up", authHandler.SignUp)
-	//r.Add("POST", "auth/confirm-sign-up", authHandler.ConfirmSignUp)
-	//r.Add("POST", "auth/sign-in", authHandler.SignIn)
-	//r.Add("POST", "auth/sign-out", authHandler.SignOut)
+	auth.RegisterSignUpRoute(authGroup, signUpHandler)
+	auth.RegisterSignUpConfirmRoute(authGroup, signUpConfirmHandler)
 }

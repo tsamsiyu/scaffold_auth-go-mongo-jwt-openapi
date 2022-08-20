@@ -80,6 +80,7 @@ var ApiModule = fx.Module(
 		NewApiConfig,
 		NewApiRunFn,
 		server.NewServer,
+		server.NewAuthRouteGroup,
 		authHandlers.NewSignUpHandler,
 		authHandlers.NewSignUpConfirmHandler,
 		auth.NewTokenStore,
