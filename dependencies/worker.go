@@ -1,36 +1,36 @@
 package dependencies
 
 import (
-	"apart-deal-api/pkg/worker/signup"
 	"context"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
+	"time"
+
+	"apart-deal-api/pkg/worker/signup"
 
 	"go.uber.org/fx"
+
+	pkgScheduler "apart-deal-api/pkg/worker/scheduler"
 )
 
 var WorkerModule = fx.Module(
-	"Worker",
+	"NotificationWorker",
 	fx.Provide(
-		signup.NewHandler,
-		signup.NewWorker,
-		signup.NewScheduler,
+		signup.NewNotificationHandler,
+		signup.NewNotificationWorker,
+		signup.NewObsoleteReqWorker,
+		pkgScheduler.NewScheduler,
 	),
 	fx.Invoke(func(
-		lc fx.Lifecycle,
-		signupScheduler *signup.Scheduler,
-		shutdowner fx.Shutdowner,
-		logger *zap.Logger,
+		scheduler *pkgScheduler.Scheduler,
+		notificationWorker *signup.NotificationWorker,
+		obsoleteReqWorker *signup.ObsoleteReqWorker,
 	) {
+		scheduler.Register(notificationWorker, time.Minute)
+		scheduler.Register(obsoleteReqWorker, time.Minute)
+	}),
+	fx.Invoke(func(lc fx.Lifecycle, scheduler *pkgScheduler.Scheduler) {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
-				go func() {
-					if err := signupScheduler.Start(context.Background()); err != nil {
-						logger.Error(errors.WithStack(err).Error())
-
-						_ = shutdowner.Shutdown()
-					}
-				}()
+				scheduler.Start(context.Background())
 
 				return nil
 			},

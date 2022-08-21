@@ -2,31 +2,37 @@ package signup
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"time"
 
 	userStore "apart-deal-api/pkg/store/user"
 )
 
-type Worker struct {
-	handler  *Handler
+type NotificationWorker struct {
+	logger   *zap.Logger
+	handler  *NotificationHandler
 	userRepo userStore.UserRepository
 }
 
-func NewWorker(
+func NewNotificationWorker(
 	userRepo userStore.UserRepository,
-	handler *Handler,
-) *Worker {
-	return &Worker{
+	handler *NotificationHandler,
+	logger *zap.Logger,
+) *NotificationWorker {
+	return &NotificationWorker{
 		userRepo: userRepo,
 		handler:  handler,
+		logger:   logger,
 	}
 }
 
-func (w *Worker) Process(ctx context.Context) error {
+func (w *NotificationWorker) Process(ctx context.Context) error {
 	users, err := w.userRepo.FindAllNotNotifiedSignUpRequests(ctx)
 	if err != nil {
 		return err
 	}
+
+	w.logger.With(zap.Int("count", len(users))).Info("Found sign up req for sending notifications")
 
 	for _, user := range users {
 		if err := w.processItem(ctx, &user); err != nil {
@@ -37,7 +43,7 @@ func (w *Worker) Process(ctx context.Context) error {
 	return nil
 }
 
-func (w *Worker) processItem(ctx context.Context, user *userStore.User) error {
+func (w *NotificationWorker) processItem(ctx context.Context, user *userStore.User) error {
 	childCtx, cancel := context.WithTimeout(ctx, time.Second*5)
 	defer cancel()
 

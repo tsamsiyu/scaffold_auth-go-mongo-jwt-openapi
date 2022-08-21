@@ -12,26 +12,28 @@ import (
 	userStore "apart-deal-api/pkg/store/user"
 )
 
-type Handler struct {
+type NotificationHandler struct {
 	mailer   mail.Mailer
 	userRepo userStore.UserRepository
 	logger   *zap.Logger
 }
 
-func NewHandler(
+func NewNotificationHandler(
 	mailer mail.Mailer,
 	userRepo userStore.UserRepository,
 	logger *zap.Logger,
-) *Handler {
-	return &Handler{
+) *NotificationHandler {
+	return &NotificationHandler{
 		mailer:   mailer,
 		logger:   logger,
 		userRepo: userRepo,
 	}
 }
 
-func (h *Handler) Handle(ctx context.Context, user *userStore.User) error {
-	h.logger.Info(fmt.Sprintf("Handler is starting for %s", user.UID))
+func (h *NotificationHandler) Handle(ctx context.Context, user *userStore.User) error {
+	h.logger.
+		With(zap.String("email", user.Email)).
+		Info(fmt.Sprintf("NotificationHandler is starting"))
 
 	if err := h.sendNotification(ctx, user); err != nil {
 		return err
@@ -44,7 +46,7 @@ func (h *Handler) Handle(ctx context.Context, user *userStore.User) error {
 	return nil
 }
 
-func (h *Handler) sendNotification(ctx context.Context, user *userStore.User) error {
+func (h *NotificationHandler) sendNotification(ctx context.Context, user *userStore.User) error {
 	body := fmt.Sprintf(
 		`Hello dear %s!
 Here's your confirmation code: %s`,

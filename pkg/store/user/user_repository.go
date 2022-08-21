@@ -35,7 +35,6 @@ type User struct {
 	Email        string         `bson:"email"`
 	Status       UserStatus     `bson:"status"`
 	PasswordHash string         `bson:"passwordHash"`
-	LastLoggedIn *time.Time     `bson:"lastLoggedIn"`
 	CreatedAt    time.Time      `bson:"createdAt"`
 	ConfirmedAt  *time.Time     `bson:"confirmedAt"`
 	SignUpReq    *SignUpRequest `bson:"signUpReq"`
@@ -43,6 +42,7 @@ type User struct {
 
 type UserRepository interface {
 	FindAllNotNotifiedSignUpRequests(ctx context.Context) ([]User, error)
+	DeleteAllPendingOlderThan(ctx context.Context, t time.Time) (int, error)
 	SaveNotifiedSignUpReqTime(ctx context.Context, uid string, t time.Time) error
 	FindBySignUpReqToken(ctx context.Context, token string) (*User, error)
 	Create(ctx context.Context, model *User) error
@@ -64,6 +64,7 @@ func NewUserRepository(db *mongo.Database) UserRepository {
 func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Context) ([]User, error) {
 	cursor, err := r.db.Collection(collectionName).Find(ctx, bson.D{
 		{"signUpReq.notifiedAt", nil},
+		{"signUpReq", bson.M{"$ne": nil}},
 	})
 	if err != nil {
 		return nil, err
@@ -88,6 +89,18 @@ func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Conte
 	}
 
 	return models, nil
+}
+
+func (r *mongoUserRepository) DeleteAllPendingOlderThan(ctx context.Context, t time.Time) (int, error) {
+	res, err := r.db.Collection(collectionName).DeleteMany(ctx, bson.D{
+		{"status", StatusPending},
+		{"createdAt", bson.M{"$lt": t}},
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return int(res.DeletedCount), nil
 }
 
 func (r *mongoUserRepository) SaveNotifiedSignUpReqTime(ctx context.Context, uid string, t time.Time) error {
