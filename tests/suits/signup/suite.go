@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 
 	"apart-deal-api/dependencies"
@@ -13,8 +14,10 @@ import (
 	"apart-deal-api/tests/tools"
 
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 
 	apiServer "apart-deal-api/pkg/api/server"
@@ -46,9 +49,17 @@ var _ = AfterSuite(func() {
 	_ = dbClient.Disconnect(context.Background())
 })
 
+var _ = AfterEach(func() {
+	_, err := db.Collection("users").DeleteMany(context.Background(), bson.M{})
+	Expect(err).To(Succeed())
+})
+
 func runSpec(specFnProvider interface{}) {
 	app := fx.New(
 		fx.Supply(logger),
+		fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
+			return &fxevent.ZapLogger{Logger: logger}
+		}),
 		fx.Supply(db),
 		fx.Supply(&config.Config{
 			IsDebug: true,
@@ -97,17 +108,54 @@ func runSpec(specFnProvider interface{}) {
 	)
 
 	app.Run()
+
+	if err := app.Err(); err != nil {
+		logger.With(zap.Error(err)).Warn("Spec runner returned error")
+	}
 }
 
 var _ = Describe("My Tests", func() {
 
-	It("Test 0", func() {
+	It("With invalid body", func() {
 		runSpec(func(apiClient *http.Client) specFnType {
 			return func() {
 				body := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
-				resp, err := apiClient.Post("api/v1/auth/sign-up", "application/json", body)
+				resp, err := apiClient.Post("/api/v1/auth/sign-up", "application/json", body)
 				Expect(err).To(Succeed())
 				Expect(resp.StatusCode).To(Equal(400))
+			}
+		})
+	})
+
+	It("With invalid email", func() {
+		runSpec(func(apiClient *http.Client) specFnType {
+			return func() {
+				body := bytes.NewBuffer([]byte(`{"name":"foo", "email": "foo", "password": "barbaris"}`))
+				resp, err := apiClient.Post("/api/v1/auth/sign-up", "application/json", body)
+				Expect(err).To(Succeed())
+
+				defer resp.Body.Close()
+				respBody, _ := io.ReadAll(resp.Body)
+
+				Expect(err).To(Succeed())
+				Expect(resp.StatusCode).To(Equal(400))
+				Expect(string(respBody)).To(ContainSubstring(`[{"path":"email","message":"must be a valid email address"}]`))
+			}
+		})
+	})
+
+	It("With valid body", func() {
+		runSpec(func(apiClient *http.Client) specFnType {
+			return func() {
+				body := bytes.NewBuffer([]byte(`{"name":"foo", "email": "foo@gmail.com", "password": "barbaris"}`))
+				resp, err := apiClient.Post("/api/v1/auth/sign-up", "application/json", body)
+
+				defer resp.Body.Close()
+				respBody, _ := io.ReadAll(resp.Body)
+
+				Expect(err).To(Succeed())
+				Expect(resp.StatusCode).To(Equal(200))
+				Expect(string(respBody)).To(MatchRegexp(`{"token":".+"}`))
 			}
 		})
 	})

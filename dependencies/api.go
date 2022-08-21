@@ -6,6 +6,7 @@ import (
 	"apart-deal-api/pkg/auth"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -43,7 +44,9 @@ func NewApiRunFn(e *echo.Echo, logger *zap.Logger, shutdowner fx.Shutdowner, api
 
 			uri := fmt.Sprintf(":%d", apiCfg.Port)
 			if err := e.Start(uri); err != nil {
-				errCh <- err
+				if !strings.Contains(err.Error(), "Server closed") {
+					errCh <- err
+				}
 			}
 		}()
 
