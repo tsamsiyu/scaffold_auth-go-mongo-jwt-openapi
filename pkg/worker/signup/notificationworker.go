@@ -2,8 +2,9 @@ package signup
 
 import (
 	"context"
-	"go.uber.org/zap"
 	"time"
+
+	"go.uber.org/zap"
 
 	userStore "apart-deal-api/pkg/store/user"
 )

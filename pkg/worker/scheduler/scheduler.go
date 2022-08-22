@@ -18,26 +18,26 @@ type workerInterval struct {
 }
 
 type Scheduler struct {
-	logger  *zap.Logger
-	workers []workerInterval
+	logger          *zap.Logger
+	workerIntervals []workerInterval
 }
 
 func NewScheduler(logger *zap.Logger) *Scheduler {
 	return &Scheduler{
-		logger:  logger,
-		workers: make([]workerInterval, 0),
+		logger:          logger,
+		workerIntervals: make([]workerInterval, 0),
 	}
 }
 
 func (s *Scheduler) Register(w Worker, interval time.Duration) {
-	s.workers = append(s.workers, workerInterval{
+	s.workerIntervals = append(s.workerIntervals, workerInterval{
 		contract: w,
 		interval: interval,
 	})
 }
 
 func (s *Scheduler) Start(ctx context.Context) {
-	for _, wi := range s.workers {
+	for _, wi := range s.workerIntervals {
 		go func(wi workerInterval) {
 			for {
 				select {

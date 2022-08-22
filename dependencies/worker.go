@@ -12,7 +12,7 @@ import (
 )
 
 var WorkerModule = fx.Module(
-	"NotificationWorker",
+	"Worker",
 	fx.Provide(
 		signup.NewNotificationHandler,
 		signup.NewNotificationWorker,
