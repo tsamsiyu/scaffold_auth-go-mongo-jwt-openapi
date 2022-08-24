@@ -24,34 +24,44 @@ import (
 
 type SpecRunner func()
 
-var DbClient *mongo.Client
-var Db *mongo.Database
-var Logger *zap.Logger
+type SharedDeps struct {
+	DbClient *mongo.Client
+	Db       *mongo.Database
+	Logger   *zap.Logger
+}
 
-var _ = BeforeSuite(func() {
-	Logger = dependencies.LoggerFromEnv()
+var sharedDeps *SharedDeps
+
+func Shared() *SharedDeps {
+	return sharedDeps
+}
+
+func InitSharedDeps(ctx context.Context) {
+	sharedDeps = &SharedDeps{}
+
+	sharedDeps.Logger = dependencies.LoggerFromEnv()
 
 	dbCfg, err := dependencies.NewDbConfig()
 	Expect(err).To(Succeed())
 
-	DbClient, err = dependencies.NewMongoClient(dbCfg)
+	sharedDeps.DbClient, err = dependencies.NewMongoClient(dbCfg)
 	Expect(err).To(Succeed())
 
-	Db = dependencies.NewMongoDb(DbClient, dbCfg)
+	sharedDeps.Db = dependencies.NewMongoDb(sharedDeps.DbClient, dbCfg)
 
-	err = schema.UsersMigrations(context.Background(), Db)
+	err = schema.UsersMigrations(ctx, sharedDeps.Db)
 	Expect(err).To(Succeed())
-})
+}
 
-var _ = AfterSuite(func() {
-	_ = DbClient.Disconnect(context.Background())
-})
+func CleanupSharedDeps() {
+	_ = sharedDeps.DbClient.Disconnect(context.Background())
+}
 
 func BuildApiSpecRunner(additionalProviders ...fx.Option) func(specRunnerProvider interface{}) {
 	return func(specRunnerProvider interface{}) {
 		apiProviders := []fx.Option{
-			fx.Supply(Logger),
-			fx.Supply(Db),
+			fx.Supply(sharedDeps.Logger),
+			fx.Supply(sharedDeps.Db),
 			fx.WithLogger(func(logger *zap.Logger) fxevent.Logger {
 				return &fxevent.ZapLogger{Logger: logger}
 			}),
@@ -72,7 +82,13 @@ func BuildApiSpecRunner(additionalProviders ...fx.Option) func(specRunnerProvide
 			fx.Provide(dependencies.NewApiRunFn),
 			fx.Provide(apiServer.NewServer),
 			fx.Provide(specRunnerProvider),
-			fx.Invoke(func(lc fx.Lifecycle, apiRunFn dependencies.ApiRunFn, e *echo.Echo, specFn SpecRunner, shutdowner fx.Shutdowner) {
+			fx.Invoke(func(
+				lc fx.Lifecycle,
+				apiRunFn dependencies.ApiRunFn,
+				e *echo.Echo,
+				specFn SpecRunner,
+				shutdowner fx.Shutdowner,
+			) {
 				lc.Append(fx.Hook{
 					OnStart: func(ctx context.Context) error {
 						err := apiRunFn(context.Background())
@@ -103,7 +119,7 @@ func BuildApiSpecRunner(additionalProviders ...fx.Option) func(specRunnerProvide
 		app.Run()
 
 		if err := app.Err(); err != nil {
-			Logger.With(zap.Error(err)).Warn("Spec runner returned error")
+			sharedDeps.Logger.With(zap.Error(err)).Warn("Spec runner returned error")
 		}
 	}
 }

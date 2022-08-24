@@ -31,7 +31,7 @@ var runSpec = BuildApiSpecRunner(
 
 var _ = Describe("Sign up", func() {
 	BeforeEach(func() {
-		_, err := Db.Collection("users").DeleteMany(context.Background(), bson.M{})
+		_, err := Shared().Db.Collection("users").DeleteMany(context.Background(), bson.M{})
 		Expect(err).To(Succeed())
 	})
 
@@ -82,7 +82,7 @@ var _ = Describe("Sign up", func() {
 	It("Email is occupied by confirmed user", func() {
 		runSpec(func(apiClient *http.Client) SpecRunner {
 			return func() {
-				_, err := Db.Collection("users").InsertOne(context.Background(), user.User{
+				_, err := Shared().Db.Collection("users").InsertOne(context.Background(), user.User{
 					UID:    pkgTools.NewUUID().String(),
 					Name:   "Foo",
 					Email:  "foo@gmail.com",
