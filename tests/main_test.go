@@ -25,9 +25,8 @@ func TestEverything(t *testing.T) {
 	})
 
 	SynchronizedAfterSuite(func() {
-		//
-	}, func() {
 		common.CleanupSharedDeps()
+	}, func() {
 	})
 
 	RunSpecs(t, "Everything")
