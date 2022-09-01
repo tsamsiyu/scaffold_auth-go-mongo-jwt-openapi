@@ -37,7 +37,7 @@ var _ = Describe("Sign up", func() {
 
 	It("Body is invalid", func() {
 		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func() {
+			return func(ctx context.Context) {
 				body := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
 				resp, err := apiClient.Post("/api/v1/auth/sign-up", "application/json", body)
 				Expect(err).To(Succeed())
@@ -48,7 +48,7 @@ var _ = Describe("Sign up", func() {
 
 	It("Email is invalid", func() {
 		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func() {
+			return func(ctx context.Context) {
 				body := bytes.NewBuffer([]byte(`{"name":"foo", "email": "foo", "password": "barbaris"}`))
 				resp, err := apiClient.Post("/api/v1/auth/sign-up", "application/json", body)
 				Expect(err).To(Succeed())
@@ -65,7 +65,7 @@ var _ = Describe("Sign up", func() {
 
 	It("Successful signup", func() {
 		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func() {
+			return func(ctx context.Context) {
 				body := bytes.NewBuffer([]byte(`{"name":"foo", "email": "foo@gmail.com", "password": "barbaris"}`))
 				resp, err := apiClient.Post("/api/v1/auth/sign-up", "application/json", body)
 
@@ -81,8 +81,8 @@ var _ = Describe("Sign up", func() {
 
 	It("Email is occupied by confirmed user", func() {
 		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func() {
-				_, err := Shared().Db.Collection("users").InsertOne(context.Background(), user.User{
+			return func(ctx context.Context) {
+				_, err := Shared().Db.Collection("users").InsertOne(ctx, user.User{
 					UID:    pkgTools.NewUUID().String(),
 					Name:   "Foo",
 					Email:  "foo@gmail.com",

@@ -121,6 +121,10 @@ func (r *mongoUserRepository) FindBySignUpReqToken(ctx context.Context, token st
 		{"signUpReq.token", token},
 	})
 	if err := singleResult.Err(); err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -134,9 +138,9 @@ func (r *mongoUserRepository) FindBySignUpReqToken(ctx context.Context, token st
 }
 
 func (r *mongoUserRepository) ConfirmAndDeleteSignUpReq(ctx context.Context, uid string) (bool, error) {
-	res, err := r.db.Collection(collectionName).UpdateOne(ctx, bson.M{
-		"_id":    uid,
-		"status": StatusPending,
+	res, err := r.db.Collection(collectionName).UpdateOne(ctx, bson.D{
+		{"_id", uid},
+		{"status", StatusPending},
 	}, bson.M{
 		"$set": bson.M{
 			"signUpReq":   nil,

@@ -22,7 +22,7 @@ import (
 	apiServer "apart-deal-api/pkg/api/server"
 )
 
-type SpecRunner func()
+type SpecRunner func(ctx context.Context)
 
 type SharedDeps struct {
 	DbClient *mongo.Client
@@ -99,7 +99,10 @@ func BuildApiSpecRunner(additionalProviders ...fx.Option) func(specRunnerProvide
 						defer GinkgoRecover()
 						defer shutdowner.Shutdown()
 
-						specFn()
+						specCtx, cancel := context.WithCancel(context.Background())
+						defer cancel()
+
+						specFn(specCtx)
 
 						return nil
 					},

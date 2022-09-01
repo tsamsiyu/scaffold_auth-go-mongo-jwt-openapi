@@ -16,5 +16,17 @@ func mapError(err error) error {
 		return apiErr.NewNotFoundError("User not found")
 	}
 
+	if _, ok := err.(*authDomain.CouldNotConfirmError); ok {
+		return apiErr.NewValidationError(
+			apiErr.NewSimpleValidationError("Could not confirm this user", "unconfirmable"),
+		)
+	}
+
+	if _, ok := err.(*authDomain.ConfirmationCodeMismatchError); ok {
+		return apiErr.NewValidationError(
+			apiErr.NewSimpleValidationError("Confirmation code mismatched", "code_mismatch"),
+		)
+	}
+
 	return err
 }

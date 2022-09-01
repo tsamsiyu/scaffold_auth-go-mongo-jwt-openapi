@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"apart-deal-api/tests/common"
@@ -17,6 +18,10 @@ import (
 func TestEverything(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RegisterTestingT(t)
+
+	BeforeEach(func() {
+		fmt.Println(CurrentSpecReport().LeafNodeText)
+	})
 
 	SynchronizedBeforeSuite(func() []byte {
 		return []byte("")

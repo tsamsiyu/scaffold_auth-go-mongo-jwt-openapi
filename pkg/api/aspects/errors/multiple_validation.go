@@ -37,7 +37,10 @@ func (e *MultipleValidationErrors) Error() string {
 }
 
 func (e MultipleValidationErrors) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.entries)
+	return json.Marshal(map[string]interface{}{
+		"tag":     "validation",
+		"entries": e.entries,
+	})
 }
 
 func mapOzzoValidationErrors(src validation.Errors) []invalidEntry {
