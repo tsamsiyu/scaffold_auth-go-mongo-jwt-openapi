@@ -1,9 +1,9 @@
 package dependencies
 
 import (
+	"apart-deal-api/pkg/api/auth"
 	authHandlers "apart-deal-api/pkg/api/handlers/auth"
 	"apart-deal-api/pkg/api/server"
-	"apart-deal-api/pkg/auth"
 	"context"
 	"fmt"
 	"strings"
@@ -84,9 +84,11 @@ var ApiModule = fx.Module(
 		NewApiRunFn,
 		server.NewServer,
 		server.NewAuthRouteGroup,
+		auth.NewTokenStore,
+		auth.NewAuthenticationService,
 		authHandlers.NewSignUpHandler,
 		authHandlers.NewSignUpConfirmHandler,
-		auth.NewTokenStore,
+		authHandlers.NewSignInHandler,
 	),
 	fx.Invoke(server.RegisterRoutes),
 	fx.Invoke(func(lc fx.Lifecycle, fn ApiRunFn, e *echo.Echo) {

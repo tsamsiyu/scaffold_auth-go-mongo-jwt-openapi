@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"apart-deal-api/pkg/api/auth"
 	"apart-deal-api/pkg/store/user"
 
 	apiErr "apart-deal-api/pkg/api/aspects/errors"
@@ -26,6 +27,10 @@ func mapError(err error) error {
 		return apiErr.NewValidationError(
 			apiErr.NewSimpleValidationError("Confirmation code mismatched", "code_mismatch"),
 		)
+	}
+
+	if _, ok := err.(*auth.UserNotConfirmed); ok {
+		return apiErr.NewUnauthorizedError(err.Error())
 	}
 
 	return err

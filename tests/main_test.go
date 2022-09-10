@@ -1,15 +1,13 @@
 package tests
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
-	"apart-deal-api/tests/common"
-
-	_ "apart-deal-api/tests/common"
-	_ "apart-deal-api/tests/suits/signup"
-	_ "apart-deal-api/tests/suits/signup_confirm"
+	"apart-deal-api/dependencies"
+	"apart-deal-api/tests/suits/signin"
+	"apart-deal-api/tests/suits/signup"
+	"apart-deal-api/tests/suits/signup_confirm"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -23,16 +21,17 @@ func TestEverything(t *testing.T) {
 		fmt.Println(CurrentSpecReport().LeafNodeText)
 	})
 
-	SynchronizedBeforeSuite(func() []byte {
-		return []byte("")
-	}, func(bytes []byte) {
-		common.InitSharedDeps(context.Background())
-	})
+	dbCfg, err := dependencies.NewDbConfig()
+	Expect(err).To(Succeed())
 
-	SynchronizedAfterSuite(func() {
-		common.CleanupSharedDeps()
-	}, func() {
-	})
+	dbClient, err := dependencies.NewMongoClient(dbCfg)
+	Expect(err).To(Succeed())
+
+	db := dependencies.NewMongoDb(dbClient, dbCfg)
+
+	signup.RegisterSuite(db)
+	signup_confirm.RegisterSuite(db)
+	signin.RegisterSuite(t, db)
 
 	RunSpecs(t, "Everything")
 }

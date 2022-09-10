@@ -1,28 +1,21 @@
 package auth
 
+//go:generate mockery --dir=. --name=TokenStore --inpackage --filename=token_store_mock.go --with-expecter
+
 import (
 	"context"
 	"encoding/json"
 	"time"
-
-	"apart-deal-api/pkg/utils"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
 )
 
 type Token struct {
-	UserUID string    `json:"userUID"`
-	Hash    string    `json:"hash"`
-	Created time.Time `json:"created"`
-}
-
-func NewTokenFromUserUID(uid string) Token {
-	return Token{
-		UserUID: uid,
-		Hash:    utils.RandomString(12),
-		Created: time.Now(),
-	}
+	UserUID        string    `json:"userUID"`
+	Hash           string    `json:"hash"`
+	RefreshingHash string    `json:"refreshingHash"`
+	Created        time.Time `json:"created"`
 }
 
 type TokenStore interface {

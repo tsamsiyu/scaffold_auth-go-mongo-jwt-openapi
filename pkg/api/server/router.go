@@ -32,6 +32,7 @@ func RegisterRoutes(
 	authGroup auth.RouteGroup,
 	signUpHandler *auth.SignUpHandler,
 	signUpConfirmHandler *auth.SignUpConfirmHandler,
+	signInHandler *auth.SignInHandler,
 ) {
 	e.GET("ready", func(c echo.Context) error {
 		return c.String(200, "OK")
@@ -39,4 +40,5 @@ func RegisterRoutes(
 
 	auth.RegisterSignUpRoute(authGroup, signUpHandler)
 	auth.RegisterSignUpConfirmRoute(authGroup, signUpConfirmHandler)
+	auth.RegisterSignInRoute(authGroup, signInHandler)
 }

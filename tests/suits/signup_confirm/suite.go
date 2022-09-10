@@ -3,25 +3,42 @@ package signup_confirm
 import (
 	"bytes"
 	"context"
-	"io"
 	"net/http"
+	"net/http/httptest"
 
+	"apart-deal-api/dependencies"
 	"apart-deal-api/pkg/api/handlers/auth"
+	"apart-deal-api/pkg/config"
 	"apart-deal-api/pkg/store/user"
 
+	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 
 	apiServer "apart-deal-api/pkg/api/server"
 	authDomain "apart-deal-api/pkg/domain/auth"
 	pkgTools "apart-deal-api/pkg/tools"
 
-	. "apart-deal-api/tests/common"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
-var runSpec = BuildApiSpecRunner(
+type specContainer struct {
+	fx.In
+
+	Echo *echo.Echo
+}
+
+var constModule = fx.Options(
+	fx.Supply(&config.Config{
+		IsDebug: true,
+	}),
+	fx.Supply(&dependencies.ApiConfig{
+		Port: 37800 + GinkgoParallelProcess(),
+	}),
+	fx.Provide(apiServer.NewServer),
 	fx.Provide(apiServer.NewAuthRouteGroup),
 	fx.Provide(user.NewUserRepository),
 	fx.Provide(auth.NewSignUpConfirmHandler),
@@ -29,128 +46,147 @@ var runSpec = BuildApiSpecRunner(
 	fx.Invoke(auth.RegisterSignUpConfirmRoute),
 )
 
-var _ = Describe("Sign Up Confirmation", func() {
-	BeforeEach(func() {
-		_, err := Shared().Db.Collection("users").DeleteMany(context.Background(), bson.M{})
-		Expect(err).To(Succeed())
-	})
+func RegisterSuite(db *mongo.Database) {
+	Describe("Sign Up Confirmation", func() {
+		loggerLvl := zap.NewAtomicLevelAt(zap.ErrorLevel)
+		logger := dependencies.NewLogger(&loggerLvl)
 
-	It("Invalid body", func() {
-		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func(ctx context.Context) {
-				body := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
-				resp, err := apiClient.Post("/api/v1/auth/sign-up-confirm", "application/json", body)
-				Expect(err).To(Succeed())
-				Expect(resp.StatusCode).To(Equal(400))
-			}
+		var (
+			ctx    context.Context
+			cancel context.CancelFunc
+			app    *fx.App
+			spec   *specContainer
+		)
+
+		BeforeEach(func() {
+			ctx, cancel = context.WithCancel(context.Background())
+
+			_, err := db.Collection("users").DeleteMany(ctx, bson.M{})
+			Expect(err).To(Succeed())
+
+			app = fx.New(
+				fx.Supply(logger),
+				fx.Supply(db),
+				constModule,
+				fx.Invoke(func(s specContainer) {
+					spec = &s
+				}),
+			)
+
+			err = app.Start(context.Background())
+			Expect(err).To(Succeed())
 		})
-	})
 
-	It("User with given token does not exist", func() {
-		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func(ctx context.Context) {
-				body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
-				resp, err := apiClient.Post("/api/v1/auth/sign-up-confirm", "application/json", body)
-				Expect(err).To(Succeed())
-				Expect(resp.StatusCode).To(Equal(404))
-			}
+		AfterEach(func() {
+			err := app.Stop(context.Background())
+			Expect(err).To(Succeed())
+
+			cancel()
 		})
-	})
 
-	It("User's code is wrong", func() {
-		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func(ctx context.Context) {
-				_, err := Shared().Db.Collection("users").InsertOne(ctx, user.User{
-					UID:    pkgTools.NewUUID().String(),
-					Name:   "Foo",
-					Email:  "foo@gmail.com",
-					Status: user.StatusConfirmed,
-					SignUpReq: &user.SignUpRequest{
-						Code:       "228",
-						Token:      "qwe",
-						NotifiedAt: nil,
-					},
-				})
-				Expect(err).To(Succeed())
+		It("Invalid body", func() {
+			body := bytes.NewBuffer([]byte(`{"foo":"bar"}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sign-up-confirm", body)
+			req.Header.Add("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			spec.Echo.ServeHTTP(rec, req)
 
-				body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
-				resp, err := apiClient.Post("/api/v1/auth/sign-up-confirm", "application/json", body)
-				Expect(err).To(Succeed())
-
-				respBody, err := io.ReadAll(resp.Body)
-				Expect(err).To(Succeed())
-
-				Expect(resp.StatusCode).To(Equal(400))
-				Expect(respBody).To(ContainSubstring("code_mismatch"))
-			}
+			Expect(rec.Code).To(Equal(400))
 		})
-	})
 
-	It("User's code is correct", func() {
-		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func(ctx context.Context) {
-				userUID := pkgTools.NewUUID().String()
-				_, err := Shared().Db.Collection("users").InsertOne(ctx, user.User{
-					UID:    userUID,
-					Name:   "Foo",
-					Email:  "foo@gmail.com",
-					Status: user.StatusPending,
-					SignUpReq: &user.SignUpRequest{
-						Code:       "123",
-						Token:      "qwe",
-						NotifiedAt: nil,
-					},
-				})
-				Expect(err).To(Succeed())
+		It("User with given token does not exist", func() {
+			body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sign-up-confirm", body)
+			req.Header.Add("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			spec.Echo.ServeHTTP(rec, req)
 
-				body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
-				resp, err := apiClient.Post("/api/v1/auth/sign-up-confirm", "application/json", body)
-				Expect(err).To(Succeed())
-				Expect(resp.StatusCode).To(Equal(204))
-
-				res := Shared().Db.Collection("users").FindOne(ctx, bson.D{
-					{"_id", userUID},
-				})
-				Expect(res.Err()).To(Succeed())
-
-				var found user.User
-
-				err = res.Decode(&found)
-				Expect(err).To(Succeed())
-
-				Expect(found.Status).To(Equal(user.StatusConfirmed))
-				Expect(found.SignUpReq).To(BeNil())
-			}
+			Expect(rec.Code).To(Equal(404))
 		})
-	})
 
-	It("User is already confirmed", func() {
-		runSpec(func(apiClient *http.Client) SpecRunner {
-			return func(ctx context.Context) {
-				_, err := Shared().Db.Collection("users").InsertOne(ctx, user.User{
-					UID:    pkgTools.NewUUID().String(),
-					Name:   "Foo",
-					Email:  "foo@gmail.com",
-					Status: user.StatusConfirmed,
-					SignUpReq: &user.SignUpRequest{
-						Code:       "123",
-						Token:      "qwe",
-						NotifiedAt: nil,
-					},
-				})
-				Expect(err).To(Succeed())
+		It("User's code is wrong", func() {
+			_, err := db.Collection("users").InsertOne(ctx, user.User{
+				UID:    pkgTools.NewUUID().String(),
+				Name:   "Foo",
+				Email:  "foo@gmail.com",
+				Status: user.StatusConfirmed,
+				SignUpReq: &user.SignUpRequest{
+					Code:       "228",
+					Token:      "qwe",
+					NotifiedAt: nil,
+				},
+			})
+			Expect(err).To(Succeed())
 
-				body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
-				resp, err := apiClient.Post("/api/v1/auth/sign-up-confirm", "application/json", body)
-				Expect(err).To(Succeed())
+			body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sign-up-confirm", body)
+			req.Header.Add("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			spec.Echo.ServeHTTP(rec, req)
 
-				respBody, err := io.ReadAll(resp.Body)
-				Expect(err).To(Succeed())
-
-				Expect(resp.StatusCode).To(Equal(400))
-				Expect(respBody).To(ContainSubstring("unconfirmable"))
-			}
+			Expect(rec.Code).To(Equal(400))
+			Expect(rec.Body.String()).To(ContainSubstring("code_mismatch"))
 		})
+
+		It("User's code is correct", func() {
+			userUID := pkgTools.NewUUID().String()
+			_, err := db.Collection("users").InsertOne(ctx, user.User{
+				UID:    userUID,
+				Name:   "Foo",
+				Email:  "foo@gmail.com",
+				Status: user.StatusPending,
+				SignUpReq: &user.SignUpRequest{
+					Code:       "123",
+					Token:      "qwe",
+					NotifiedAt: nil,
+				},
+			})
+			Expect(err).To(Succeed())
+
+			body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sign-up-confirm", body)
+			req.Header.Add("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			spec.Echo.ServeHTTP(rec, req)
+
+			res := db.Collection("users").FindOne(ctx, bson.D{
+				{"_id", userUID},
+			})
+			Expect(res.Err()).To(Succeed())
+
+			var found user.User
+
+			err = res.Decode(&found)
+			Expect(err).To(Succeed())
+
+			Expect(found.Status).To(Equal(user.StatusConfirmed))
+			Expect(found.SignUpReq).To(BeNil())
+		})
+
+		It("User is already confirmed", func() {
+			_, err := db.Collection("users").InsertOne(ctx, user.User{
+				UID:    pkgTools.NewUUID().String(),
+				Name:   "Foo",
+				Email:  "foo@gmail.com",
+				Status: user.StatusConfirmed,
+				SignUpReq: &user.SignUpRequest{
+					Code:       "123",
+					Token:      "qwe",
+					NotifiedAt: nil,
+				},
+			})
+			Expect(err).To(Succeed())
+
+			body := bytes.NewBuffer([]byte(`{"code":"123","token":"qwe"}`))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/sign-up-confirm", body)
+			req.Header.Add("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+			spec.Echo.ServeHTTP(rec, req)
+
+			Expect(rec.Code).To(Equal(400))
+			Expect(rec.Body.String()).To(ContainSubstring("unconfirmable"))
+		})
+
 	})
 
-})
+}

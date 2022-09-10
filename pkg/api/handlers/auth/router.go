@@ -15,3 +15,8 @@ func RegisterSignUpConfirmRoute(g RouteGroup, signUpConfirmHandler *SignUpConfir
 	v := *g
 	v.POST("/sign-up-confirm", signUpConfirmHandler.Handle)
 }
+
+func RegisterSignInRoute(g RouteGroup, signInHandler *SignInHandler) {
+	v := *g
+	v.POST("/sign-in", signInHandler.Handle)
+}

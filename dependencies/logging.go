@@ -12,18 +12,21 @@ var (
 	defaultLoggingLevel = zap.NewAtomicLevelAt(zap.InfoLevel)
 )
 
-func LoggerFromEnv() *zap.Logger {
-	zapLevel := getZapLevelFromEnv()
-
+func NewLogger(lvl *zap.AtomicLevel) *zap.Logger {
 	loggerCore := zapcore.NewCore(
 		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
 		os.Stdout,
 		zap.LevelEnablerFunc(func(level zapcore.Level) bool {
-			return level >= zapLevel.Level()
+			return level >= lvl.Level()
 		}),
 	)
 
 	return zap.New(loggerCore)
+}
+
+func LoggerFromEnv() *zap.Logger {
+	zapLevel := getZapLevelFromEnv()
+	return NewLogger(zapLevel)
 }
 
 func getZapLevelFromEnv() *zap.AtomicLevel {
