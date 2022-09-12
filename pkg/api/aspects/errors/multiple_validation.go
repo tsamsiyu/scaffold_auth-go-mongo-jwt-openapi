@@ -27,6 +27,10 @@ func NewMultipleValidationErrors(err error) *MultipleValidationErrors {
 	panic(fmt.Sprintf("Unknown error type to cast into MultipleValidationErrors: %T", err))
 }
 
+func NewMultipleValidationInputError(err error) *InputError {
+	return NewInputError(NewMultipleValidationErrors(err))
+}
+
 func (e *MultipleValidationErrors) Error() string {
 	var entriesStr []string
 	for _, entry := range e.entries {

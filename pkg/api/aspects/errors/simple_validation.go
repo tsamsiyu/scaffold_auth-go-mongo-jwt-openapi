@@ -14,6 +14,10 @@ func NewSimpleValidationError(msg string, tag string) *SimpleValidationError {
 	}
 }
 
+func NewSimpleValidationInputError(msg string, tag string) *InputError {
+	return NewInputError(NewSimpleValidationError(msg, tag))
+}
+
 func (e *SimpleValidationError) Error() string {
 	return e.msg
 }

@@ -40,7 +40,7 @@ func (h *SignUpHandler) Handle(eCtx echo.Context) error {
 	}
 
 	if err := validateSignUp(&payload); err != nil {
-		return apiErr.NewValidationError(err)
+		return apiErr.NewMultipleValidationInputError(err)
 	}
 
 	ctx := eCtx.Request().Context()

@@ -27,7 +27,7 @@ func NewErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
 			return
 		}
 
-		if _, ok := err.(*apiErr.ValidationError); ok {
+		if _, ok := err.(*apiErr.InputError); ok {
 			_ = context.JSON(http.StatusBadRequest, err)
 			return
 		}

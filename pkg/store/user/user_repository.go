@@ -15,7 +15,7 @@ type UserDuplicateError struct {
 type UserStatus string
 
 const (
-	collectionName = "users"
+	CollectionName = "users"
 )
 
 var (
@@ -62,7 +62,7 @@ func NewUserRepository(db *mongo.Database) UserRepository {
 }
 
 func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Context) ([]User, error) {
-	cursor, err := r.db.Collection(collectionName).Find(ctx, bson.D{
+	cursor, err := r.db.Collection(CollectionName).Find(ctx, bson.D{
 		{"signUpReq.notifiedAt", nil},
 		{"signUpReq", bson.M{"$ne": nil}},
 	})
@@ -92,7 +92,7 @@ func (r *mongoUserRepository) FindAllNotNotifiedSignUpRequests(ctx context.Conte
 }
 
 func (r *mongoUserRepository) DeleteAllPendingOlderThan(ctx context.Context, t time.Time) (int, error) {
-	res, err := r.db.Collection(collectionName).DeleteMany(ctx, bson.D{
+	res, err := r.db.Collection(CollectionName).DeleteMany(ctx, bson.D{
 		{"status", StatusPending},
 		{"createdAt", bson.M{"$lt": t}},
 	})
@@ -104,7 +104,7 @@ func (r *mongoUserRepository) DeleteAllPendingOlderThan(ctx context.Context, t t
 }
 
 func (r *mongoUserRepository) SaveNotifiedSignUpReqTime(ctx context.Context, uid string, t time.Time) error {
-	_, err := r.db.Collection(collectionName).UpdateOne(ctx, bson.M{
+	_, err := r.db.Collection(CollectionName).UpdateOne(ctx, bson.M{
 		"_id": uid,
 	}, bson.M{
 		"$set": bson.M{"signUpReq.notifiedAt": t},
@@ -117,7 +117,7 @@ func (r *mongoUserRepository) SaveNotifiedSignUpReqTime(ctx context.Context, uid
 }
 
 func (r *mongoUserRepository) FindBySignUpReqToken(ctx context.Context, token string) (*User, error) {
-	singleResult := r.db.Collection(collectionName).FindOne(ctx, bson.D{
+	singleResult := r.db.Collection(CollectionName).FindOne(ctx, bson.D{
 		{"signUpReq.token", token},
 	})
 	if err := singleResult.Err(); err != nil {
@@ -138,7 +138,7 @@ func (r *mongoUserRepository) FindBySignUpReqToken(ctx context.Context, token st
 }
 
 func (r *mongoUserRepository) ConfirmAndDeleteSignUpReq(ctx context.Context, uid string) (bool, error) {
-	res, err := r.db.Collection(collectionName).UpdateOne(ctx, bson.D{
+	res, err := r.db.Collection(CollectionName).UpdateOne(ctx, bson.D{
 		{"_id", uid},
 		{"status", StatusPending},
 	}, bson.M{
@@ -156,8 +156,8 @@ func (r *mongoUserRepository) ConfirmAndDeleteSignUpReq(ctx context.Context, uid
 }
 
 func (r *mongoUserRepository) FindByUID(ctx context.Context, uid string) (*User, error) {
-	singleResult := r.db.Collection(collectionName).FindOne(ctx, bson.M{
-		"_id": uid,
+	singleResult := r.db.Collection(CollectionName).FindOne(ctx, bson.D{
+		{"_id", uid},
 	})
 	if err := singleResult.Err(); err != nil {
 		return nil, err
@@ -169,12 +169,12 @@ func (r *mongoUserRepository) FindByUID(ctx context.Context, uid string) (*User,
 		return nil, err
 	}
 
-	return nil, nil
+	return &u, nil
 }
 
 func (r *mongoUserRepository) FindByEmail(ctx context.Context, email string) (*User, error) {
-	singleResult := r.db.Collection(collectionName).FindOne(ctx, bson.M{
-		"email": email,
+	singleResult := r.db.Collection(CollectionName).FindOne(ctx, bson.D{
+		{"email", email},
 	})
 	if err := singleResult.Err(); err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -190,7 +190,7 @@ func (r *mongoUserRepository) FindByEmail(ctx context.Context, email string) (*U
 		return nil, err
 	}
 
-	return nil, nil
+	return &u, nil
 }
 
 func (r *mongoUserRepository) Create(ctx context.Context, model *User) error {
@@ -199,7 +199,7 @@ func (r *mongoUserRepository) Create(ctx context.Context, model *User) error {
 		return err
 	}
 
-	_, err = r.db.Collection(collectionName).InsertOne(ctx, doc)
+	_, err = r.db.Collection(CollectionName).InsertOne(ctx, doc)
 	if err != nil {
 		return mapError(err)
 	}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"apart-deal-api/pkg/domain/auth"
+	"apart-deal-api/pkg/security"
 	"apart-deal-api/pkg/utils"
 
 	"github.com/pkg/errors"
@@ -20,7 +21,11 @@ const (
 	TokenExpDuration     = time.Minute * 15
 )
 
-type UserNotConfirmed struct {
+type UserNotConfirmedError struct {
+	error
+}
+
+type InvalidPassError struct {
 	error
 }
 
@@ -50,7 +55,11 @@ func (s *AuthenticationService) Auth(ctx context.Context, payload *oas.SignIn) (
 	}
 
 	if user.Status != userStore.StatusConfirmed {
-		return nil, &UserNotConfirmed{error: errors.New("Not authorized")}
+		return nil, &UserNotConfirmedError{error: errors.New("Not authorized")}
+	}
+
+	if ok := security.CheckPasswordHash(payload.Password, user.PasswordHash); !ok {
+		return nil, &InvalidPassError{error: errors.New("Invalid password")}
 	}
 
 	tokenModel := &Token{
