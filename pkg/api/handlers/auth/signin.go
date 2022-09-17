@@ -9,7 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 
 	apiErr "apart-deal-api/pkg/api/aspects/errors"
-	authDomain "apart-deal-api/pkg/domain/auth"
 	validation "github.com/go-ozzo/ozzo-validation"
 	oas "gitlab.com/apart-deals/openapi/go/api"
 )
@@ -45,14 +44,7 @@ func (h *SignInHandler) Handle(eCtx echo.Context) error {
 
 	t, err := h.authSvc.Auth(eCtx.Request().Context(), payload)
 	if err != nil {
-		if _, ok := err.(*authDomain.UserNotFound); ok {
-			return apiErr.NewNotFoundError("User not found")
-		}
-		if _, ok := err.(*auth.InvalidPassError); ok {
-			return apiErr.NewSimpleValidationInputError("Password is invalid", "invalid_pass")
-		}
-
-		return err
+		return mapError(err)
 	}
 
 	return eCtx.JSON(http.StatusOK, t)

@@ -14,9 +14,11 @@ import (
 )
 
 type AuthToken struct {
+	UserId string `json:"user_id"`
+
 	Token string `json:"token"`
 
 	RefreshToken string `json:"refresh_token"`
 
-	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	ExpiresAt time.Time `json:"expires_at"`
 }

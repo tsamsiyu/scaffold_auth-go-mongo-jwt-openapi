@@ -44,8 +44,10 @@ components:
 
     AuthToken:
       type: object
-      required: [token, refresh_token]
+      required: [user_id, token, refresh_token, expires_at]
       properties:
+        user_id:
+          type: string
         token:
           type: string
         refresh_token:
@@ -65,6 +67,11 @@ components:
 
     RefreshAuthToken:
       type: object
+      required: [user_id, auth_token, refresh_token]
       properties:
+        user_id:
+          type: string
+        auth_token:
+          type: string
         refresh_token:
           type: string

@@ -36,7 +36,7 @@ func (_m *MockTokenStore) Create(ctx context.Context, token *Token, expiration t
 	return r0
 }
 
-// MockTokenStore_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Create'
+// MockTokenStore_Create_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Push'
 type MockTokenStore_Create_Call struct {
 	*mock.Call
 }
@@ -46,7 +46,7 @@ type MockTokenStore_Create_Call struct {
 //  - token *Token
 //  - expiration time.Duration
 func (_e *MockTokenStore_Expecter) Create(ctx interface{}, token interface{}, expiration interface{}) *MockTokenStore_Create_Call {
-	return &MockTokenStore_Create_Call{Call: _e.mock.On("Create", ctx, token, expiration)}
+	return &MockTokenStore_Create_Call{Call: _e.mock.On("Push", ctx, token, expiration)}
 }
 
 func (_c *MockTokenStore_Create_Call) Run(run func(ctx context.Context, token *Token, expiration time.Duration)) *MockTokenStore_Create_Call {
@@ -122,7 +122,7 @@ func (_m *MockTokenStore) FindByHash(ctx context.Context, hash string) (*Token, 
 	return r0, r1
 }
 
-// MockTokenStore_FindByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByHash'
+// MockTokenStore_FindByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindForUpdate'
 type MockTokenStore_FindByHash_Call struct {
 	*mock.Call
 }
@@ -131,7 +131,7 @@ type MockTokenStore_FindByHash_Call struct {
 //  - ctx context.Context
 //  - hash string
 func (_e *MockTokenStore_Expecter) FindByHash(ctx interface{}, hash interface{}) *MockTokenStore_FindByHash_Call {
-	return &MockTokenStore_FindByHash_Call{Call: _e.mock.On("FindByHash", ctx, hash)}
+	return &MockTokenStore_FindByHash_Call{Call: _e.mock.On("FindForUpdate", ctx, hash)}
 }
 
 func (_c *MockTokenStore_FindByHash_Call) Run(run func(ctx context.Context, hash string)) *MockTokenStore_FindByHash_Call {

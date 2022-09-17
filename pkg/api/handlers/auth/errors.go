@@ -13,6 +13,10 @@ func mapError(err error) error {
 		return apiErr.NewConflictError("Such user already exists")
 	}
 
+	if _, ok := err.(*auth.InvalidPasswordError); ok {
+		return apiErr.NewSimpleValidationInputError("Password is invalid", "invalid_pass")
+	}
+
 	if _, ok := err.(*authDomain.UserNotFound); ok {
 		return apiErr.NewNotFoundError("User not found")
 	}

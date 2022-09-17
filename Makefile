@@ -14,3 +14,6 @@ generate-openapi:
 run-locally:
 	export $(cat .env.local | xargs)
 	go run cmd/apart-deal-api/main.go
+
+generate mocks:
+	go generate ./...
