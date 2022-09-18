@@ -1,5 +1,12 @@
 package auth
 
+type TokenInvalidError struct {
+}
+
+func (e *TokenInvalidError) Error() string {
+	return "Token is invalid"
+}
+
 type TokenDoesNotExistError struct {
 }
 

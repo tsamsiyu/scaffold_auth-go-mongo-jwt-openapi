@@ -1,6 +1,8 @@
 
 generate-openapi:
+	find openapi/go -name "*.go" -delete
 	docker run \
+	  --rm \
       -v "${PWD}/openapi/spec:/usr/src" \
       -v "${PWD}/openapi/go:/usr/dest" \
       -w /usr/src \
@@ -10,6 +12,7 @@ generate-openapi:
       -o /usr/dest \
       --additional-properties=apiPath='',packageName=openapi,enumClassPrefix=true \
       --global-property models
+	git add openapi/go
 
 run-locally:
 	export $(cat .env.local | xargs)

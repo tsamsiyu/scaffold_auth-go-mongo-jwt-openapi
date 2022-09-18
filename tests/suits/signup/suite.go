@@ -33,6 +33,7 @@ type specContainer struct {
 }
 
 var signUpConstModule = fx.Options(
+	fx.NopLogger,
 	fx.Supply(&config.Config{
 		IsDebug: true,
 	}),

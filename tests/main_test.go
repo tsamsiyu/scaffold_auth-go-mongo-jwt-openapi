@@ -29,15 +29,9 @@ func TestEverything(t *testing.T) {
 
 	db := dependencies.NewMongoDb(dbClient, dbCfg)
 
-	redisCfg, err := dependencies.NewRedisConfig()
-	Expect(err).To(Succeed())
-
-	redisClient, err := dependencies.NewRedisClient(redisCfg)
-	Expect(err).To(Succeed())
-
 	signup.RegisterSuite(db)
 	signup_confirm.RegisterSuite(db)
-	signin.RegisterSuite(t, db, redisClient)
+	signin.RegisterSuite(t, db)
 
 	RunSpecs(t, "Everything")
 }

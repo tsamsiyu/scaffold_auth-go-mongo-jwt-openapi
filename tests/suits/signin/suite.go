@@ -9,12 +9,10 @@ import (
 	"time"
 
 	"apart-deal-api/dependencies"
-	"apart-deal-api/pkg/api/auth"
 	"apart-deal-api/pkg/config"
 	"apart-deal-api/pkg/security"
 	"apart-deal-api/pkg/store/user"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -36,22 +34,23 @@ type specContainer struct {
 }
 
 var constModule = fx.Options(
+	fx.NopLogger,
 	fx.Supply(&config.Config{
 		IsDebug: true,
 	}),
 	fx.Supply(&dependencies.ApiConfig{
-		Port: 37800 + GinkgoParallelProcess(),
+		Port:        37800 + GinkgoParallelProcess(),
+		TokenSecret: "foobar",
 	}),
 	fx.Provide(apiServer.NewServer),
 	fx.Provide(apiServer.NewAuthRouteGroup),
 	fx.Provide(user.NewUserRepository),
-	fx.Provide(auth.NewTokenStore),
-	fx.Provide(auth.NewAuthenticationService),
+	fx.Provide(dependencies.NewAuthenticationService),
 	fx.Provide(authHandlers.NewSignInHandler),
 	fx.Invoke(authHandlers.RegisterSignInRoute),
 )
 
-func RegisterSuite(t *testing.T, db *mongo.Database, redisClient *redis.Client) {
+func RegisterSuite(t *testing.T, db *mongo.Database) {
 	Describe("Sign In", func() {
 
 		loggerLvl := zap.NewAtomicLevelAt(zap.ErrorLevel)
@@ -73,7 +72,6 @@ func RegisterSuite(t *testing.T, db *mongo.Database, redisClient *redis.Client) 
 			app = fx.New(
 				fx.Supply(logger),
 				fx.Supply(db),
-				fx.Supply(redisClient),
 				constModule,
 				fx.Invoke(func(s specContainer) {
 					spec = &s
@@ -174,7 +172,7 @@ func RegisterSuite(t *testing.T, db *mongo.Database, redisClient *redis.Client) 
 			spec.Echo.ServeHTTP(rec, req)
 
 			Expect(rec.Code).To(Equal(200))
-			Expect(rec.Body.String()).To(MatchRegexp(`{"token":".*","refresh_token":".*","expires_at":".*"}`))
+			Expect(rec.Body.String()).To(MatchRegexp(`{"token":".*"}`))
 		})
 	})
 

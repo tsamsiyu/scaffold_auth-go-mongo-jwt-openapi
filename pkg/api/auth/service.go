@@ -2,13 +2,11 @@ package auth
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"apart-deal-api/pkg/domain/auth"
 	"apart-deal-api/pkg/security"
-	"apart-deal-api/pkg/utils"
-
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
 
 	userStore "apart-deal-api/pkg/store/user"
@@ -16,95 +14,74 @@ import (
 	oas "gitlab.com/apart-deals/openapi/go/api"
 )
 
+type TokenPayload struct {
+	UserID string
+	Email  string
+}
+
 const (
-	TokenLen         int = 12
-	TokenExpDuration     = time.Minute * 15
+	TokenExpDuration = time.Minute * 15
 )
 
 type AuthenticationService struct {
-	tokenStore TokenStore
-	userRepo   userStore.UserRepository
+	tokenSecret string
+	userRepo    userStore.UserRepository
 }
 
 func NewAuthenticationService(
-	tokenStore TokenStore,
+	tokenSecret string,
 	userRepo userStore.UserRepository,
 ) *AuthenticationService {
 	return &AuthenticationService{
-		tokenStore: tokenStore,
-		userRepo:   userRepo,
+		tokenSecret: tokenSecret,
+		userRepo:    userRepo,
 	}
 }
 
-func (s *AuthenticationService) Take(ctx context.Context, userID string, tokenHash string) (*Token, error) {
-	tokens, err := s.tokenStore.FindByKey(ctx, userID)
+func (s *AuthenticationService) Sign(payload TokenPayload) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userID":    payload.UserID,
+		"userEmail": payload.Email,
+		"nbf":       time.Now(),
+		"exp":       time.Now().Add(TokenExpDuration),
+	})
+
+	tokenString, err := token.SignedString([]byte(s.tokenSecret))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	var token *Token
-
-	for i, t := range tokens {
-		if t.Hash == tokenHash {
-			token = &tokens[i]
-			break
-		}
-	}
-
-	return token, nil
+	return tokenString, nil
 }
 
-func (s *AuthenticationService) RefreshToken(ctx context.Context, payload *oas.RefreshAuthToken) (*oas.AuthToken, error) {
-	var expiredToken bool
-	var newToken *Token
-
-	if err := s.tokenStore.FindForUpdate(ctx, payload.UserId, func(ctx context.Context, tokens []Token) error {
-		tokenIndex := -1
-
-		for i, t := range tokens {
-			if t.RefreshingHash == payload.RefreshToken && t.Hash == payload.AuthToken {
-				tokenIndex = i
-				break
-			}
+func (s *AuthenticationService) Verify(tokenString string) (*TokenPayload, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, &TokenInvalidError{}
 		}
 
-		if tokenIndex == -1 {
-			return nil
-		}
-
-		if !tokens[tokenIndex].Created.Add(TokenExpDuration).Before(time.Now()) {
-			expiredToken = true
-			return nil
-		}
-
-		newToken = &Token{
-			UserUID:        payload.UserId,
-			Hash:           GenerateTokenHash(),
-			RefreshingHash: GenerateTokenRefreshingHash(),
-		}
-
-		return s.tokenStore.SetByIndex(ctx, payload.UserId, tokenIndex, *newToken)
-	}); err != nil {
-		return nil, err
+		return s.tokenSecret, nil
+	})
+	if err != nil {
+		return nil, &TokenInvalidError{}
 	}
 
-	if expiredToken {
-		return nil, &TokenExpiredError{}
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, &TokenInvalidError{}
 	}
 
-	if newToken == nil {
-		return nil, &TokenDoesNotExistError{}
+	if err := claims.Valid(); err != nil {
+		return nil, &TokenInvalidError{}
 	}
 
-	return &oas.AuthToken{
-		UserId:       payload.UserId,
-		Token:        newToken.Hash,
-		RefreshToken: newToken.RefreshingHash,
-		ExpiresAt:    newToken.Created.Add(TokenExpDuration),
+	return &TokenPayload{
+		UserID: claims["userID"].(string),
+		Email:  claims["userEmail"].(string),
 	}, nil
 }
 
-func (s *AuthenticationService) Auth(ctx context.Context, payload *oas.SignIn) (*oas.AuthToken, error) {
+func (s *AuthenticationService) FindUser(ctx context.Context, payload *oas.SignIn) (*userStore.User, error) {
 	user, err := s.userRepo.FindByEmail(ctx, payload.Email)
 	if err != nil {
 		return nil, err
@@ -122,34 +99,21 @@ func (s *AuthenticationService) Auth(ctx context.Context, payload *oas.SignIn) (
 		return nil, &InvalidPasswordError{error: errors.New("Invalid password")}
 	}
 
-	token := Token{
-		UserUID:        user.UID,
-		Hash:           GenerateTokenHash(),
-		RefreshingHash: GenerateTokenRefreshingHash(),
-		Created:        time.Now(),
+	return user, nil
+}
+
+func (s *AuthenticationService) Auth(ctx context.Context, payload *oas.SignIn) (string, error) {
+	user, err := s.FindUser(ctx, payload)
+	if err != nil {
+		return "", err
 	}
 
-	if err := s.tokenStore.Push(ctx, user.UID, token); err != nil {
-		return nil, err
+	tokenString, err := s.Sign(TokenPayload{
+		UserID: user.UID,
+	})
+	if err != nil {
+		return "", err
 	}
 
-	return &oas.AuthToken{
-		UserId:       token.UserUID,
-		Token:        token.Hash,
-		RefreshToken: token.RefreshingHash,
-		ExpiresAt:    token.Created.Add(TokenExpDuration),
-	}, nil
-}
-
-func GenerateTokenHash() string {
-	return utils.RandomString(TokenLen)
-}
-func GenerateTokenRefreshingHash() string {
-	return utils.RandomString(TokenLen)
-}
-
-func ExtractTokenFromHttpHeaders(header http.Header) string {
-	h := header.Get("Authorization")
-
-	return h
+	return tokenString, nil
 }

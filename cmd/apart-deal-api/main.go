@@ -17,7 +17,6 @@ func main() {
 			return &fxevent.ZapLogger{Logger: logger}
 		}),
 		dependencies.ConfigModule,
-		dependencies.RedisModule,
 		dependencies.DbModule,
 		dependencies.SmtpModule,
 		dependencies.RepositoryModule,

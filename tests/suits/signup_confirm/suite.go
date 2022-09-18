@@ -32,6 +32,7 @@ type specContainer struct {
 }
 
 var constModule = fx.Options(
+	fx.NopLogger,
 	fx.Supply(&config.Config{
 		IsDebug: true,
 	}),

@@ -2,6 +2,7 @@ package dependencies
 
 import (
 	authDomain "apart-deal-api/pkg/domain/auth"
+
 	"go.uber.org/fx"
 )
 

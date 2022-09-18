@@ -42,19 +42,12 @@ components:
           type: string
           minLength: 5
 
-    AuthToken:
+    SignedIn:
       type: object
-      required: [user_id, token, refresh_token, expires_at]
+      required: [token]
       properties:
-        user_id:
-          type: string
         token:
           type: string
-        refresh_token:
-          type: string
-        expires_at:
-          type: string
-          format: date-time
 
     ConfirmSignUp:
       type: object
@@ -63,15 +56,4 @@ components:
         code:
           type: string
         token:
-          type: string
-
-    RefreshAuthToken:
-      type: object
-      required: [user_id, auth_token, refresh_token]
-      properties:
-        user_id:
-          type: string
-        auth_token:
-          type: string
-        refresh_token:
           type: string

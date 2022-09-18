@@ -42,10 +42,12 @@ func (h *SignInHandler) Handle(eCtx echo.Context) error {
 		return apiErr.NewMultipleValidationInputError(err)
 	}
 
-	t, err := h.authSvc.Auth(eCtx.Request().Context(), payload)
+	tokenString, err := h.authSvc.Auth(eCtx.Request().Context(), payload)
 	if err != nil {
 		return mapError(err)
 	}
 
-	return eCtx.JSON(http.StatusOK, t)
+	return eCtx.JSON(http.StatusOK, oas.SignedIn{
+		Token: tokenString,
+	})
 }

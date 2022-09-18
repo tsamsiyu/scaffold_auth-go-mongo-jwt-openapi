@@ -9,10 +9,6 @@
 
 package openapi
 
-type RefreshAuthToken struct {
-	UserId string `json:"user_id"`
-
-	AuthToken string `json:"auth_token"`
-
-	RefreshToken string `json:"refresh_token"`
+type SignedIn struct {
+	Token string `json:"token"`
 }

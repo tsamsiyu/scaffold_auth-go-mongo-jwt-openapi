@@ -1,26 +1,29 @@
 package dependencies
 
 import (
-	"apart-deal-api/pkg/api/auth"
-	authHandlers "apart-deal-api/pkg/api/handlers/auth"
-	"apart-deal-api/pkg/api/server"
 	"context"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
+	"apart-deal-api/pkg/api/auth"
+	"apart-deal-api/pkg/api/server"
+	"apart-deal-api/pkg/store/user"
 
 	"github.com/Netflix/go-env"
+	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
+
+	authHandlers "apart-deal-api/pkg/api/handlers/auth"
 )
 
 type ApiRunFn func(ctx context.Context) error
 
 type ApiConfig struct {
-	Port int `env:"API_PORT,required=true"`
+	Port        int    `env:"API_PORT,required=true"`
+	TokenSecret string `env:"JWT_SECRET,required=true"`
 }
 
 func NewApiConfig() (*ApiConfig, error) {
@@ -77,6 +80,10 @@ func NewApiRunFn(e *echo.Echo, logger *zap.Logger, shutdowner fx.Shutdowner, api
 	}
 }
 
+func NewAuthenticationService(cfg *ApiConfig, userRepo user.UserRepository) *auth.AuthenticationService {
+	return auth.NewAuthenticationService(cfg.TokenSecret, userRepo)
+}
+
 var ApiModule = fx.Module(
 	"API",
 	fx.Provide(
@@ -84,8 +91,7 @@ var ApiModule = fx.Module(
 		NewApiRunFn,
 		server.NewServer,
 		server.NewAuthRouteGroup,
-		auth.NewTokenStore,
-		auth.NewAuthenticationService,
+		NewAuthenticationService,
 		authHandlers.NewSignUpHandler,
 		authHandlers.NewSignUpConfirmHandler,
 		authHandlers.NewSignInHandler,
