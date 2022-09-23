@@ -12,6 +12,7 @@ import (
 
 	"github.com/Netflix/go-env"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -22,8 +23,9 @@ import (
 type ApiRunFn func(ctx context.Context) error
 
 type ApiConfig struct {
-	Port        int    `env:"API_PORT,required=true"`
-	TokenSecret string `env:"JWT_SECRET,required=true"`
+	Port         int    `env:"API_PORT,required=true"`
+	AllowOrigins string `env:"ALLOW_ORIGINS"`
+	TokenSecret  string `env:"JWT_SECRET,required=true"`
 }
 
 func NewApiConfig() (*ApiConfig, error) {
@@ -96,6 +98,16 @@ var ApiModule = fx.Module(
 		authHandlers.NewSignUpConfirmHandler,
 		authHandlers.NewSignInHandler,
 	),
+	fx.Invoke(func(cfg *ApiConfig, e *echo.Echo) {
+		if cfg.AllowOrigins == "" {
+			return
+		}
+
+		origins := strings.Split(cfg.AllowOrigins, ",")
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: origins,
+		}))
+	}),
 	fx.Invoke(server.RegisterRoutes),
 	fx.Invoke(func(lc fx.Lifecycle, fn ApiRunFn, e *echo.Echo) {
 		lc.Append(fx.Hook{
