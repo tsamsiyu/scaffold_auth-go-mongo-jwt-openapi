@@ -1,0 +1,38 @@
+version: "3.7"
+
+networks:
+  app-tier:
+    external: false
+    name: apartdeal_tier
+    driver: bridge
+#    ipam:
+#      config:
+#        - subnet: 172.16.0.0/24
+#          gateway: 172.16.0.254
+
+services:
+#
+  mongodb1:
+    image: mongo:5.0.10
+    restart: always
+    container_name: apartdeal_mongodb1
+    networks:
+      - app-tier
+#        ipv4_address: 172.16.0.1
+    ports:
+      - "27101:27101"
+    volumes:
+      - mongodata:/data/db
+    command: mongod --port 27101
+#    --bind_ip 172.16.0.1
+#
+  smtp:
+    image: mailhog/mailhog
+    container_name: apartdeal_smtp
+    restart: always
+    ports:
+      - "1125:1025"
+      - "8125:8025"
+    networks:
+      - app-tier
+
