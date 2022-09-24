@@ -14,16 +14,20 @@ func mapError(err error) error {
 	}
 
 	if _, ok := err.(*auth.InvalidPasswordError); ok {
-		return apiErr.NewSimpleValidationInputError("Password is invalid", "invalid_pass")
+		return apiErr.NewUnauthorizedError("invalid_password")
 	}
 
 	if _, ok := err.(*authDomain.UserNotFound); ok {
 		return apiErr.NewNotFoundError("User not found")
 	}
 
+	if _, ok := err.(*auth.NoSuchUserError); ok {
+		return apiErr.NewUnauthorizedError("no_user")
+	}
+
 	if _, ok := err.(*authDomain.CouldNotConfirmError); ok {
 		return apiErr.NewInputError(
-			apiErr.NewSimpleValidationError("Could not confirm this user", "unconfirmable"),
+			apiErr.NewSimpleValidationError("Could not confirm this user", "confirmation_failed"),
 		)
 	}
 
@@ -34,7 +38,7 @@ func mapError(err error) error {
 	}
 
 	if _, ok := err.(*auth.UserNotConfirmedError); ok {
-		return apiErr.NewUnauthorizedError(err.Error())
+		return apiErr.NewUnauthorizedError("not_confirmed")
 	}
 
 	return err

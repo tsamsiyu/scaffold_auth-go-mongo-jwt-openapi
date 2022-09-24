@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"apart-deal-api/pkg/domain/auth"
 	"apart-deal-api/pkg/security"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/pkg/errors"
@@ -88,7 +87,7 @@ func (s *AuthenticationService) FindUser(ctx context.Context, payload *oas.SignI
 	}
 
 	if user == nil {
-		return nil, &auth.UserNotFound{}
+		return nil, &NoSuchUserError{}
 	}
 
 	if user.Status != userStore.StatusConfirmed {

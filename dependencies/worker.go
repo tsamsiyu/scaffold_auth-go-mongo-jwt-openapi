@@ -24,8 +24,8 @@ var WorkerModule = fx.Module(
 		notificationWorker *signup.NotificationWorker,
 		obsoleteReqWorker *signup.ObsoleteReqWorker,
 	) {
-		scheduler.Register(notificationWorker, time.Minute)
-		scheduler.Register(obsoleteReqWorker, time.Minute)
+		scheduler.Register(notificationWorker, time.Second*10, time.Second*10)
+		scheduler.Register(obsoleteReqWorker, time.Minute, 0)
 	}),
 	fx.Invoke(func(lc fx.Lifecycle, scheduler *pkgScheduler.Scheduler) {
 		lc.Append(fx.Hook{

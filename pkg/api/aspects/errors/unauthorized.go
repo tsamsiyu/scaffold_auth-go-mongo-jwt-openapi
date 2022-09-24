@@ -1,23 +1,27 @@
 package errors
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type UnauthorizedError struct {
-	msg string
+	reason string
 }
 
-func NewUnauthorizedError(msg string) *UnauthorizedError {
+func NewUnauthorizedError(reason string) *UnauthorizedError {
 	return &UnauthorizedError{
-		msg: msg,
+		reason: reason,
 	}
 }
 
 func (e *UnauthorizedError) Error() string {
-	return e.msg
+	return fmt.Sprintf("User unauthorized with reason %s", e.reason)
 }
 
 func (e *UnauthorizedError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]string{
-		"message": e.msg,
+		"message": "User unauthorized",
+		"reason":  e.reason,
 	})
 }

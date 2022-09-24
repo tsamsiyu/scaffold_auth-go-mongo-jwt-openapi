@@ -13,8 +13,9 @@ type Worker interface {
 }
 
 type workerInterval struct {
-	contract Worker
-	interval time.Duration
+	contract     Worker
+	interval     time.Duration
+	initialPause time.Duration
 }
 
 type Scheduler struct {
@@ -29,16 +30,19 @@ func NewScheduler(logger *zap.Logger) *Scheduler {
 	}
 }
 
-func (s *Scheduler) Register(w Worker, interval time.Duration) {
+func (s *Scheduler) Register(w Worker, interval time.Duration, initialPause time.Duration) {
 	s.workerIntervals = append(s.workerIntervals, workerInterval{
-		contract: w,
-		interval: interval,
+		contract:     w,
+		interval:     interval,
+		initialPause: initialPause,
 	})
 }
 
 func (s *Scheduler) Start(ctx context.Context) {
 	for _, wi := range s.workerIntervals {
 		go func(wi workerInterval) {
+			time.Sleep(wi.initialPause)
+
 			for {
 				select {
 				case <-ctx.Done():

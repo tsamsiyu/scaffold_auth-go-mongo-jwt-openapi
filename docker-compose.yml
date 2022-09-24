@@ -1,5 +1,8 @@
 version: "3.7"
 
+volumes:
+  mongodb1:
+
 networks:
   app-tier:
     external: false
@@ -22,7 +25,7 @@ services:
     ports:
       - "27101:27101"
     volumes:
-      - mongodata:/data/db
+      - mongodb1:/data/db
     command: mongod --port 27101
 #    --bind_ip 172.16.0.1
 #

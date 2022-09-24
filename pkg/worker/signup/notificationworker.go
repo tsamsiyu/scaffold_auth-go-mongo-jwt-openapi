@@ -33,9 +33,8 @@ func (w *NotificationWorker) Process(ctx context.Context) error {
 		return err
 	}
 
-	w.logger.With(zap.Int("count", len(users))).Info("Found sign up req for sending notifications")
-
 	for _, user := range users {
+		w.logger.With(zap.String("email", user.Email)).Info("Sending sign-up notifications")
 		if err := w.processItem(ctx, &user); err != nil {
 			return err
 		}

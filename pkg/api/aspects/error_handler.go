@@ -37,6 +37,11 @@ func NewErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
 			return
 		}
 
+		if _, ok := err.(*apiErr.UnauthorizedError); ok {
+			_ = context.JSON(http.StatusUnauthorized, err)
+			return
+		}
+
 		if _, ok := err.(*apiErr.NotFoundError); ok {
 			_ = context.JSON(http.StatusNotFound, err)
 			return

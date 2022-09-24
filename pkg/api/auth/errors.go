@@ -36,3 +36,11 @@ type InvalidPasswordError struct {
 func (e *InvalidPasswordError) Error() string {
 	return "Invalid password"
 }
+
+type NoSuchUserError struct {
+	error
+}
+
+func (e *NoSuchUserError) Error() string {
+	return "No such user"
+}
